@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Prompt Manager",
+  "version": "1.0",
+  "description": "A Chrome extension to effortlessly save, manage, and access your favorite prompts. Streamline your workflow by keeping your prompts organized and just a click away.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Prompt Manager",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "32": "icons/icon.svg",
+      "48": "icons/icon.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://generativelanguage.googleapis.com;"
+  }
+}
