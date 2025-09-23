@@ -1,5 +1,5 @@
-import { CloseIcon, SparkleIcon, SpinnerIcon, EngineerIcon } from './Icons.js';
-import { callGeminiAPI } from '../hooks/usePrompts.js';
+import { CloseIcon, SparkleIcon, SpinnerIcon, EngineerIcon, ImageIcon } from './Icons.js';
+import { callGeminiAPI, callGeminiAPIMultimodal } from '../hooks/usePrompts.js';
 
 export const renderPromptForm = (container, props) => {
   const { isOpen, onClose, onSave, onSaveAsTemplate, promptToEdit, showNotification, categories, templates } = props;
@@ -8,6 +8,11 @@ export const renderPromptForm = (container, props) => {
     container.innerHTML = '';
     return;
   }
+  
+  let imageState = {
+    base64: null,
+    mimeType: null,
+  };
   
   const categoryOptions = categories.map(cat => `<option value="${cat}"></option>`).join('');
   const templateOptions = templates.map(temp => `<option value="${temp.id}">${temp.title}</option>`).join('');
@@ -44,11 +49,21 @@ export const renderPromptForm = (container, props) => {
           </div>
           <div class="form-group">
             <label for="text">Prompt Text</label>
+            <div id="image-dropzone" class="image-dropzone">
+                ${ImageIcon()}
+                <span>Paste image here</span>
+            </div>
+            <div id="image-preview-wrapper" style="display: none;">
+                <img id="form-image-preview" src="" alt="Image preview" />
+                <button type="button" id="remove-image-btn" title="Remove image">
+                    ${CloseIcon()}
+                </button>
+            </div>
             <div class="textarea-container">
-              <textarea id="text" rows="8" class="form-textarea" placeholder="Enter your prompt text here..." required></textarea>
+              <textarea id="text" rows="8" class="form-textarea" placeholder="Add instructions for the image, or enter a text prompt..." required></textarea>
               <div class="ai-actions">
-                <button type="button" id="engineer-btn" class="btn-ai" title="Engineer Prompt">
-                    ${EngineerIcon()} <span>Engineer</span>
+                <button type="button" id="ai-generate-btn" class="btn-ai" title="Generate with AI">
+                    ${EngineerIcon()} <span>Generate with AI</span>
                 </button>
                 <button type="button" id="improve-btn" class="btn-ai" title="Improve with AI">
                     ${SparkleIcon()} <span>Improve</span>
@@ -73,10 +88,17 @@ export const renderPromptForm = (container, props) => {
   const categoryInput = container.querySelector('#category');
   const textInput = container.querySelector('#text');
   const improveBtn = container.querySelector('#improve-btn');
-  const engineerBtn = container.querySelector('#engineer-btn');
+  const generateBtn = container.querySelector('#ai-generate-btn');
   const templateSelect = container.querySelector('#template-select');
   const saveAsTemplateBtn = container.querySelector('#save-as-template-btn');
   const cancelFormBtn = container.querySelector('#cancel-form-btn');
+  
+  // Image handling elements
+  const imageDropzone = container.querySelector('#image-dropzone');
+  const imagePreviewWrapper = container.querySelector('#image-preview-wrapper');
+  const imagePreview = container.querySelector('#form-image-preview');
+  const removeImageBtn = container.querySelector('#remove-image-btn');
+
 
   if (promptToEdit) {
     titleInput.value = promptToEdit.title;
@@ -96,6 +118,36 @@ export const renderPromptForm = (container, props) => {
           }
       });
   }
+  
+  form.addEventListener('paste', (e) => {
+    if (e.clipboardData.files.length > 0) {
+        const file = e.clipboardData.files[0];
+        if (file.type.startsWith('image/')) {
+            e.preventDefault();
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imageState.base64 = event.target.result;
+                imageState.mimeType = file.type;
+                imagePreview.src = imageState.base64;
+                imagePreviewWrapper.style.display = 'block';
+                imageDropzone.style.display = 'none';
+                updateButtonState();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+  });
+  
+  removeImageBtn.addEventListener('click', () => {
+    imageState.base64 = null;
+    imageState.mimeType = null;
+    imagePreview.src = '';
+    imagePreviewWrapper.style.display = 'none';
+    imageDropzone.style.display = 'flex';
+    updateButtonState();
+  });
+
 
   if (saveAsTemplateBtn) {
     saveAsTemplateBtn.addEventListener('click', () => {
@@ -111,50 +163,72 @@ export const renderPromptForm = (container, props) => {
   
   const updateButtonState = () => {
     const textIsEmpty = !textInput.value.trim();
+    const hasImage = !!imageState.base64;
     improveBtn.disabled = textIsEmpty;
-    engineerBtn.disabled = textIsEmpty;
+    generateBtn.disabled = textIsEmpty && !hasImage;
   };
 
   textInput.addEventListener('input', updateButtonState);
   updateButtonState();
 
-  const setProcessingState = (button, isProcessing, originalContent) => {
+  const setProcessingState = (isProcessing, button, originalContent) => {
       if (isProcessing) {
           button.innerHTML = `${SpinnerIcon()} Processing...`;
           button.disabled = true;
           improveBtn.disabled = true;
-          engineerBtn.disabled = true;
+          generateBtn.disabled = true;
       } else {
           button.innerHTML = originalContent;
           updateButtonState();
       }
   };
-
-  const handleAiAction = async (button, promptGenerator) => {
+  
+  const handleAiAction = async (button, promptGenerator, apiCaller) => {
       const originalContent = button.innerHTML;
-      setProcessingState(button, true, originalContent);
+      setProcessingState(true, button, originalContent);
       try {
           const prompt = promptGenerator(textInput.value);
-          const resultText = await callGeminiAPI(prompt);
+          const resultText = await apiCaller(prompt);
           textInput.value = resultText;
-          showNotification(`Prompt ${button.id.split('-')[0]}ed with AI!`, 'success');
+          showNotification(`Prompt updated with AI!`, 'success');
       } catch (e) {
           console.error(e);
-          showNotification(e.message || `Failed to ${button.id.split('-')[0]} prompt.`, 'error');
+          showNotification(e.message || `Failed to update prompt.`, 'error');
       } finally {
-          setProcessingState(button, false, originalContent);
+          setProcessingState(false, button, originalContent);
       }
   };
-
-  improveBtn.addEventListener('click', () => {
-    handleAiAction(improveBtn, (currentText) => 
-      `Correct any spelling or grammar mistakes and improve the phrasing of the following text. Make it clearer, more concise, and more effective. Return only the improved text, without any additional explanations or introductory phrases.\n\nOriginal text:\n"${currentText}"`
-    );
-  });
   
-  engineerBtn.addEventListener('click', () => {
-     handleAiAction(engineerBtn, (currentText) => 
-      `Analyze the following prompt and re-engineer it to be more effective for a large language model. Apply prompt engineering principles such as:
+  generateBtn.addEventListener('click', async () => {
+    if (imageState.base64) {
+        // Multimodal generation
+        const originalContent = generateBtn.innerHTML;
+        setProcessingState(true, generateBtn, originalContent);
+        try {
+            const userInstruction = textInput.value.trim();
+            const base64Data = imageState.base64.split(',')[1];
+            
+            let systemPrompt;
+            if (userInstruction) {
+                systemPrompt = `Using the provided image as context, follow these instructions precisely: "${userInstruction}". Generate only the final text output based on the instructions. Do not add any introductory phrases.`;
+            } else {
+                systemPrompt = `Analyze the provided image and generate a detailed, creative prompt that could be used to create a similar image. The prompt should capture the subject, style, mood, and composition. Return only the generated prompt text.`;
+            }
+
+            const resultText = await callGeminiAPIMultimodal(systemPrompt, base64Data, imageState.mimeType);
+            textInput.value = resultText;
+            showNotification('Prompt generated from image!', 'success');
+        } catch (e) {
+            console.error(e);
+            showNotification(e.message || 'Failed to generate from image.', 'error');
+        } finally {
+            setProcessingState(false, generateBtn, originalContent);
+        }
+
+    } else {
+        // Text-only engineering
+        handleAiAction(generateBtn, (currentText) => 
+          `Analyze the following prompt and re-engineer it to be more effective for a large language model. Apply prompt engineering principles such as:
 1. Adding a clear role or persona for the AI (e.g., "You are an expert copywriter...").
 2. Specifying the desired output format (e.g., list, JSON, paragraph).
 3. Providing context, constraints, and clear, direct instructions.
@@ -163,7 +237,15 @@ export const renderPromptForm = (container, props) => {
 Return ONLY the re-engineered prompt, without any explanations or introductory phrases.
 
 Original Prompt:
-"${currentText}"`
+"${currentText}"`, (prompt) => callGeminiAPI(prompt));
+    }
+  });
+
+
+  improveBtn.addEventListener('click', () => {
+    handleAiAction(improveBtn, (currentText) => 
+      `Correct any spelling or grammar mistakes and improve the phrasing of the following text. Make it clearer, more concise, and more effective. Return only the improved text, without any additional explanations or introductory phrases.\n\nOriginal text:\n"${currentText}"`,
+      (prompt) => callGeminiAPI(prompt)
     );
   });
 

@@ -53,6 +53,36 @@ export const callGeminiAPI = async (prompt) => {
     }
 };
 
+export const callGeminiAPIMultimodal = async (prompt, imageBase64, mimeType) => {
+    const API_KEY = await getApiKey();
+
+    if (!API_KEY) {
+        throw new Error("API key not configured. Please add your key in the Settings page.");
+    }
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+        const imagePart = {
+            inlineData: {
+                mimeType: mimeType,
+                data: imageBase64,
+            },
+        };
+        const textPart = { text: prompt };
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [textPart, imagePart] },
+        });
+
+        return response.text.trim();
+    } catch (error) {
+        console.error("Gemini API call failed:", error);
+        throw new Error(`API call failed. Please check your key and network, then see the console for details.`);
+    }
+};
+
 
 // Prompts Management
 export const getPrompts = async () => {

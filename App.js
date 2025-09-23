@@ -4,7 +4,7 @@ import { renderPromptForm } from './components/PromptForm.js';
 import { renderConfirmationModal } from './components/ConfirmationModal.js';
 import { renderPromptViewModal } from './components/PromptViewModal.js';
 import { showNotification } from './components/Notification.js';
-import { PlusIcon, SettingsIcon, SearchIcon, SortIcon, ExternalLinkIcon, TrashIcon, SparkleIcon, SpinnerIcon, BackIcon, EyeIcon, EyeOffIcon } from './components/Icons.js';
+import { PlusIcon, SettingsIcon, SearchIcon, ExternalLinkIcon, TrashIcon, SparkleIcon, SpinnerIcon, BackIcon, EyeIcon, EyeOffIcon } from './components/Icons.js';
 
 const renderSettingsView = (container, props) => {
     const { onExport, onImport, templates, onAddTemplate, onDeleteTemplate, apiKey, onSaveApiKey } = props;
@@ -268,7 +268,7 @@ const App = async (rootElement) => {
   // PROMPT HANDLERS
   const handleSavePrompt = async (data) => {
     let updatedPrompts;
-    if (state.editingPrompt) {
+    if (state.editingPrompt && state.editingPrompt.id) {
       const updated = { ...state.editingPrompt, ...data };
       await updatePrompt(updated);
       updatedPrompts = state.prompts.map(p => p.id === updated.id ? updated : p);
@@ -278,7 +278,7 @@ const App = async (rootElement) => {
       updatedPrompts = [...state.prompts, newPrompt];
       showNotification('Prompt added successfully!');
     }
-    setState({ prompts: updatedPrompts });
+    setState({ prompts: updatedPrompts, editingPrompt: null });
     handleCloseForm();
   };
 
