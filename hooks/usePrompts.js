@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '../lib/google-genai.js';
 
-const storage = {
+export const storage = {
   get: (key) => {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       return chrome.storage.local.get(key);

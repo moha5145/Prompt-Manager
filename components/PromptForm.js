@@ -1,5 +1,7 @@
 import { CloseIcon, SparkleIcon, SpinnerIcon, EngineerIcon, ImageIcon } from './Icons.js';
-import { callGeminiAPI, callGeminiAPIMultimodal } from '../hooks/usePrompts.js';
+import { callGeminiAPI, callGeminiAPIMultimodal, storage } from '../hooks/usePrompts.js';
+
+const DRAFT_KEY = 'promptFormDraft';
 
 export const renderPromptForm = (container, props) => {
   const { isOpen, onClose, onSave, onSaveAsTemplate, promptToEdit, showNotification, categories, templates } = props;
@@ -93,17 +95,56 @@ export const renderPromptForm = (container, props) => {
   const saveAsTemplateBtn = container.querySelector('#save-as-template-btn');
   const cancelFormBtn = container.querySelector('#cancel-form-btn');
   
-  // Image handling elements
   const imageDropzone = container.querySelector('#image-dropzone');
   const imagePreviewWrapper = container.querySelector('#image-preview-wrapper');
   const imagePreview = container.querySelector('#form-image-preview');
   const removeImageBtn = container.querySelector('#remove-image-btn');
 
+  // --- DRAFT LOGIC ---
+  const saveDraft = async () => {
+    if (promptToEdit) return; // Only save drafts for new prompts
+    const draft = {
+      title: titleInput.value,
+      category: categoryInput.value,
+      text: textInput.value,
+      image: imageState,
+    };
+    await storage.set({ [DRAFT_KEY]: draft });
+  };
 
+  const loadDraft = async () => {
+    if (promptToEdit) return;
+    const result = await storage.get(DRAFT_KEY);
+    const savedDraft = result[DRAFT_KEY];
+    if (savedDraft) {
+        const draft = savedDraft;
+        titleInput.value = draft.title || '';
+        categoryInput.value = draft.category || '';
+        textInput.value = draft.text || '';
+        if (draft.image && draft.image.base64) {
+            imageState = draft.image;
+            imagePreview.src = imageState.base64;
+            imagePreviewWrapper.style.display = 'block';
+            imageDropzone.style.display = 'none';
+        }
+    }
+  };
+
+  const clearDraft = async () => {
+    await storage.set({ [DRAFT_KEY]: null });
+  };
+  // --- END DRAFT LOGIC ---
+  
   if (promptToEdit) {
     titleInput.value = promptToEdit.title;
     textInput.value = promptToEdit.text;
     categoryInput.value = promptToEdit.category || '';
+  } else {
+    // Asynchronously load draft for new prompts
+    (async () => {
+        await loadDraft();
+        updateButtonState(); // Ensure button state is correct after loading
+    })();
   }
 
   if (templateSelect) {
@@ -114,6 +155,7 @@ export const renderPromptForm = (container, props) => {
               titleInput.value = selectedTemplate.title;
               textInput.value = selectedTemplate.text;
               updateButtonState();
+              saveDraft();
               textInput.focus();
           }
       });
@@ -133,6 +175,7 @@ export const renderPromptForm = (container, props) => {
                 imagePreviewWrapper.style.display = 'block';
                 imageDropzone.style.display = 'none';
                 updateButtonState();
+                saveDraft();
             };
             reader.readAsDataURL(file);
         }
@@ -146,6 +189,7 @@ export const renderPromptForm = (container, props) => {
     imagePreviewWrapper.style.display = 'none';
     imageDropzone.style.display = 'flex';
     updateButtonState();
+    saveDraft();
   });
 
 
@@ -168,7 +212,13 @@ export const renderPromptForm = (container, props) => {
     generateBtn.disabled = textIsEmpty && !hasImage;
   };
 
-  textInput.addEventListener('input', updateButtonState);
+  textInput.addEventListener('input', () => {
+    updateButtonState();
+    saveDraft();
+  });
+  titleInput.addEventListener('input', saveDraft);
+  categoryInput.addEventListener('input', saveDraft);
+
   updateButtonState();
 
   const setProcessingState = (isProcessing, button, originalContent) => {
@@ -190,6 +240,7 @@ export const renderPromptForm = (container, props) => {
           const prompt = promptGenerator(textInput.value);
           const resultText = await apiCaller(prompt);
           textInput.value = resultText;
+          saveDraft();
           showNotification(`Prompt updated with AI!`, 'success');
       } catch (e) {
           console.error(e);
@@ -201,7 +252,6 @@ export const renderPromptForm = (container, props) => {
   
   generateBtn.addEventListener('click', async () => {
     if (imageState.base64) {
-        // Multimodal generation
         const originalContent = generateBtn.innerHTML;
         setProcessingState(true, generateBtn, originalContent);
         try {
@@ -217,6 +267,7 @@ export const renderPromptForm = (container, props) => {
 
             const resultText = await callGeminiAPIMultimodal(systemPrompt, base64Data, imageState.mimeType);
             textInput.value = resultText;
+            saveDraft();
             showNotification('Prompt generated from image!', 'success');
         } catch (e) {
             console.error(e);
@@ -226,7 +277,6 @@ export const renderPromptForm = (container, props) => {
         }
 
     } else {
-        // Text-only engineering
         handleAiAction(generateBtn, (currentText) => 
           `Analyze the following prompt and re-engineer it to be more effective for a large language model. Apply prompt engineering principles such as:
 1. Adding a clear role or persona for the AI (e.g., "You are an expert copywriter...").
@@ -257,7 +307,7 @@ Original Prompt:
     cancelFormBtn.addEventListener('click', onClose);
   }
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (titleInput.value.trim() && textInput.value.trim()) {
       onSave({ 
@@ -265,6 +315,7 @@ Original Prompt:
         text: textInput.value,
         category: categoryInput.value 
       });
+      await clearDraft();
     }
   });
 };
