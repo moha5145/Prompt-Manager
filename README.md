@@ -16,6 +16,14 @@ A Chrome extension to effortlessly save, manage, and access your favorite prompt
 - **Import/Export**: Backup and restore your prompt collection in JSON format.
 - **Intuitive UI**: A modern, easy-to-use dark mode interface.
 
+## Screenshots
+
+| Main View | Empty State |
+| :---: | :---: |
+| ![Main View](screenshots/screenshot-main.png) | ![Empty State](screenshots/screenshot-empty.png) |
+| **Settings & API Key** | **Template Management** |
+| ![Settings](screenshots/screenshot-settings.png) | ![Template Management](screenshots/screenshot-templates.png) |
+
 ## Installation and Usage
 
 ### 1. Clone or Download
@@ -92,6 +100,14 @@ Une extension Chrome pour sauvegarder, gérer et accéder sans effort à vos pro
   - **Ingénierie de Prompt** : Transformez un prompt simple en un prompt structuré et optimisé pour les LLMs.
 - **Import/Export** : Sauvegardez et restaurez votre collection de prompts au format JSON.
 - **Interface intuitive** : Une interface sombre, moderne et facile à utiliser.
+
+## Captures d'écran
+
+| Vue principale | État initial (vide) |
+| :---: | :---: |
+| ![Vue principale](screenshots/screenshot-main.png) | ![État initial](screenshots/screenshot-empty.png) |
+| **Paramètres & Clé API** | **Gestion des Modèles** |
+| ![Paramètres](screenshots/screenshot-settings.png) | ![Gestion des modèles](screenshots/screenshot-templates.png) |
 
 ## Installation et Utilisation
 
