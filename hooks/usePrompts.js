@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '../lib/google-genai.js';
+import { getDefaultTemplates } from '../lib/i18n.js';
 
 export const storage = {
   get: (key) => {
@@ -37,7 +38,7 @@ export const callGeminiAPI = async (prompt) => {
     const API_KEY = await getApiKey();
 
     if (!API_KEY) {
-        throw new Error("API key not configured. Please add your key in the Settings page.");
+        throw new Error("error_api_key_missing");
     }
 
     try {
@@ -49,7 +50,7 @@ export const callGeminiAPI = async (prompt) => {
         return response.text.trim();
     } catch (error) {
         console.error("Gemini API call failed:", error);
-        throw new Error(`API call failed. Please check your key and network, then see the console for details.`);
+        throw new Error("error_api_call_failed");
     }
 };
 
@@ -57,7 +58,7 @@ export const callGeminiAPIMultimodal = async (prompt, imageBase64, mimeType) => 
     const API_KEY = await getApiKey();
 
     if (!API_KEY) {
-        throw new Error("API key not configured. Please add your key in the Settings page.");
+        throw new Error("error_api_key_missing");
     }
 
     try {
@@ -79,7 +80,7 @@ export const callGeminiAPIMultimodal = async (prompt, imageBase64, mimeType) => 
         return response.text.trim();
     } catch (error) {
         console.error("Gemini API call failed:", error);
-        throw new Error(`API call failed. Please check your key and network, then see the console for details.`);
+        throw new Error("error_api_call_failed");
     }
 };
 
@@ -135,29 +136,6 @@ export const importPrompts = async (newPrompts) => {
 };
 
 // Template Management
-const defaultTemplates = [
-  {
-    id: 'template_default_1',
-    title: 'Persona Generator',
-    text: 'Act as a {{persona_role}}. You are an expert in {{domain}}. Your task is to respond to the following request in the persona described.\n\nRequest: {{user_request}}',
-  },
-  {
-    id: 'template_default_2',
-    title: 'Text Summarizer',
-    text: 'Summarize the following text into {{number}} key bullet points. Focus on the main ideas and conclusions.\n\nText:\n"""\n{{text_to_summarize}}\n"""',
-  },
-  {
-    id: 'template_default_3',
-    title: 'Email Writer',
-    text: 'Write a professional email with the following characteristics:\n- Tone: {{tone_of_email}}\n- Recipient: {{recipient}}\n- Goal: {{goal_of_email}}\n- Key points to include: {{key_points}}\n\nGenerate the email subject and body.',
-  },
-  {
-    id: 'template_default_4',
-    title: 'Code Explainer',
-    text: 'Act as an expert software engineer. Explain the following code snippet in a clear and concise way. Describe what it does, how it works, and suggest potential improvements.\n\nLanguage: {{programming_language}}\n\nCode:\n```\n{{code_snippet}}\n```',
-  }
-];
-
 const saveTemplates = async (templates) => {
   await storage.set({ templates });
 };
@@ -166,10 +144,24 @@ export const getTemplates = async () => {
   const result = await storage.get('templates');
   // If templates have never been set before, initialize with defaults
   if (result.templates === undefined) {
-    await saveTemplates(defaultTemplates);
-    return defaultTemplates;
+    const templates = getDefaultTemplates();
+    await saveTemplates(templates);
+    return templates;
   }
   return result.templates; // Return existing templates (even if it's an empty array)
+};
+
+export const syncDefaultTemplates = async () => {
+  const allTemplates = await getTemplates();
+  // Filter out any existing default templates to remove old language defaults
+  const userTemplates = allTemplates.filter(t => !t.id.startsWith('template_default_'));
+  
+  // Get the new default templates for the current (just changed) locale
+  const newDefaultTemplates = getDefaultTemplates();
+
+  const syncedTemplates = [...userTemplates, ...newDefaultTemplates];
+  await saveTemplates(syncedTemplates);
+  return syncedTemplates;
 };
 
 export const addTemplate = async (templateData) => {

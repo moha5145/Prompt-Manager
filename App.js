@@ -1,85 +1,95 @@
-import { getPrompts, addPrompt, updatePrompt, deletePrompt, importPrompts, getTemplates, addTemplate, deleteTemplate, callGeminiAPI, getApiKey, setApiKey } from './hooks/usePrompts.js';
+import { getPrompts, addPrompt, updatePrompt, deletePrompt, importPrompts, getTemplates, addTemplate, deleteTemplate, callGeminiAPI, getApiKey, setApiKey, syncDefaultTemplates } from './hooks/usePrompts.js';
 import { renderPromptList } from './components/PromptList.js';
 import { renderPromptForm } from './components/PromptForm.js';
 import { renderConfirmationModal } from './components/ConfirmationModal.js';
 import { renderPromptViewModal } from './components/PromptViewModal.js';
 import { showNotification } from './components/Notification.js';
 import { PlusIcon, SettingsIcon, SearchIcon, ExternalLinkIcon, TrashIcon, SparkleIcon, SpinnerIcon, BackIcon, EyeIcon, EyeOffIcon } from './components/Icons.js';
+import { t, getLocale, setLanguage } from './lib/i18n.js';
 
 const renderSettingsView = (container, props) => {
-    const { onExport, onImport, templates, onAddTemplate, onDeleteTemplate, apiKey, onSaveApiKey } = props;
+    const { onExport, onImport, templates, onAddTemplate, onDeleteTemplate, apiKey, onSaveApiKey, currentLocale, onSetLanguage } = props;
     
     const templatesHtml = templates.map(template => `
         <li class="template-list-item" data-id="${template.id}">
             <span class="template-list-item-title">${template.title}</span>
-            <button class="btn-icon delete-template-btn" title="Delete Template">${TrashIcon()}</button>
+            <button class="btn-icon delete-template-btn" title="${t('deletePrompt')}">${TrashIcon()}</button>
         </li>
     `).join('');
+    
+    const googleAiStudioLink = `<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>`;
 
     container.innerHTML = `
         <div class="settings-view">
+             <div>
+                <h2>${t('language')}</h2>
+                 <div class="form-group">
+                    <select id="language-select" class="form-select" style="margin-top: 1rem;">
+                        <option value="en" ${currentLocale === 'en' ? 'selected' : ''}>${t('english')}</option>
+                        <option value="fr" ${currentLocale === 'fr' ? 'selected' : ''}>${t('french')}</option>
+                    </select>
+                </div>
+            </div>
             <div class="api-key-management-section">
-                <h2>API Key Management</h2>
-                <p>
-                    Your Gemini API key is required for AI features. Get your key from 
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>. 
-                    It is stored securely in your browser's local storage.
-                </p>
+                <h2>${t('settingsAPIKey')}</h2>
+                <p>${t('settingsAPIKeyDesc', { link: googleAiStudioLink })}</p>
                 <form id="api-key-form" class="settings-form">
                     <div class="form-group">
-                        <label for="api-key-input">Gemini API Key</label>
+                        <label for="api-key-input">${t('settingsAPIKeyInputLabel')}</label>
                          <div class="input-with-icon">
-                            <input id="api-key-input" type="password" class="form-input" placeholder="Enter your API key" value="${apiKey || ''}" />
-                            <button type="button" id="toggle-api-key-visibility" class="input-icon-btn" title="Toggle visibility">
+                            <input id="api-key-input" type="password" class="form-input" placeholder="${t('settingsAPIKeyInputPlaceholder')}" value="${apiKey || ''}" />
+                            <button type="button" id="toggle-api-key-visibility" class="input-icon-btn" title="${t('toggleVisibility')}">
                                 ${EyeIcon()}
                             </button>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Key</button>
+                        <button type="submit" class="btn btn-primary">${t('saveKey')}</button>
                     </div>
                 </form>
             </div>
         
             <div class="data-management-section">
-                <h2>Data Management</h2>
-                <p>Save your prompts to a file or load them from a backup.</p>
+                <h2>${t('settingsData')}</h2>
+                <p>${t('settingsDataDesc')}</p>
                 <div class="data-management-actions">
-                    <button id="export-btn" class="btn">Export Prompts</button>
-                    <button id="import-btn" class="btn">Import Prompts</button>
+                    <button id="export-btn" class="btn">${t('exportPrompts')}</button>
+                    <button id="import-btn" class="btn">${t('importPrompts')}</button>
                 </div>
             </div>
 
             <div class="template-management-section">
-                <h2>Prompt Templates</h2>
-                <p>Create reusable templates to speed up prompt creation.</p>
+                <h2>${t('settingsTemplates')}</h2>
+                <p>${t('settingsTemplatesDesc')}</p>
                 <form id="template-form" class="settings-form">
                     <div class="form-group">
-                        <label for="template-title">Template Title</label>
-                        <input id="template-title" type="text" class="form-input" placeholder="e.g., 'Persona Generator'" required />
+                        <label for="template-title">${t('templateTitle')}</label>
+                        <input id="template-title" type="text" class="form-input" placeholder="${t('templateTitlePlaceholder')}" required />
                     </div>
                     <div class="form-group">
-                        <label for="template-text">Template Text</label>
+                        <label for="template-text">${t('templateText')}</label>
                         <div class="textarea-container">
-                            <textarea id="template-text" rows="4" class="form-textarea" placeholder="e.g., 'Act as a {{role}} and describe...'" required></textarea>
+                            <textarea id="template-text" rows="4" class="form-textarea" placeholder="${t('templateTextPlaceholder')}" required></textarea>
                             <div class="ai-actions">
-                                <button type="button" id="improve-template-btn" class="btn-ai" title="Improve with AI">
-                                    ${SparkleIcon()} <span>Improve</span>
+                                <button type="button" id="improve-template-btn" class="btn-ai" title="${t('improveWithAI')}">
+                                    ${SparkleIcon()} <span>${t('improve')}</span>
                                 </button>
                             </div>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Template</button>
+                        <button type="submit" class="btn btn-primary">${t('saveTemplate')}</button>
                     </div>
                 </form>
-                <h3 style="margin-top: 1.5rem; font-size: 1rem;">Saved Templates</h3>
+                <h3 style="margin-top: 1.5rem; font-size: 1rem;">${t('savedTemplates')}</h3>
                 <ul id="template-list" style="margin-top: 1rem;">
-                    ${templates.length > 0 ? templatesHtml : '<li>No templates saved yet.</li>'}
+                    ${templates.length > 0 ? templatesHtml : `<li>${t('noTemplatesSaved')}</li>`}
                 </ul>
             </div>
         </div>
     `;
+
+    container.querySelector('#language-select').addEventListener('change', (e) => onSetLanguage(e.target.value));
 
     // API Key form logic
     const apiKeyForm = container.querySelector('#api-key-form');
@@ -126,7 +136,7 @@ const renderSettingsView = (container, props) => {
         const originalContent = improveTemplateBtn.innerHTML;
         const setProcessingState = (isProcessing) => {
             if (isProcessing) {
-                improveTemplateBtn.innerHTML = `${SpinnerIcon()} Processing...`;
+                improveTemplateBtn.innerHTML = `${SpinnerIcon()} ${t('processing')}`;
                 improveTemplateBtn.disabled = true;
             } else {
                 improveTemplateBtn.innerHTML = originalContent;
@@ -139,10 +149,10 @@ const renderSettingsView = (container, props) => {
             const prompt = `Correct any spelling or grammar mistakes and improve the phrasing of the following text. Make it clearer, more concise, and more effective. Return only the improved text, without any additional explanations or introductory phrases.\n\nOriginal text:\n"${templateTextInput.value}"`;
             const resultText = await callGeminiAPI(prompt);
             templateTextInput.value = resultText;
-            showNotification('Template improved with AI!', 'success');
+            showNotification(t('notificationTemplateImproved'), 'success');
         } catch (e) {
             console.error(e);
-            showNotification(e.message || 'Failed to improve template.', 'error');
+            showNotification(t(e.message) || t('error_failed_to_improve'), 'error');
         } finally {
             setProcessingState(false);
         }
@@ -197,6 +207,7 @@ const App = async (rootElement) => {
     promptToDelete: null,
     viewingPrompt: null,
     lastDeletedPrompt: null,
+    locale: getLocale(),
   };
 
   const setState = (newState) => {
@@ -220,7 +231,7 @@ const App = async (rootElement) => {
   // DATA HANDLERS
   const handleExport = () => {
     if (state.prompts.length === 0) {
-        showNotification("No prompts to export.", "info");
+        showNotification(t('notificationNoPromptsToExport'), "info");
         return;
     }
     const promptsJson = JSON.stringify(state.prompts, null, 2);
@@ -233,7 +244,7 @@ const App = async (rootElement) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showNotification('Prompts exported successfully!', 'success');
+    showNotification(t('notificationExportSuccess'), 'success');
   };
 
   const handleImport = () => {
@@ -251,13 +262,13 @@ const App = async (rootElement) => {
                 const { mergedPrompts, importedCount } = await importPrompts(importedData);
                 setState({ prompts: mergedPrompts });
                 if (importedCount > 0) {
-                    showNotification(`${importedCount} new prompt(s) imported successfully!`, 'success');
+                    showNotification(t('notificationImportSuccess', { count: importedCount }), 'success');
                 } else {
-                    showNotification("No new prompts were found to import.", "info");
+                    showNotification(t('notificationImportNoNew'), "info");
                 }
             } catch (err) {
                 console.error("Import failed:", err);
-                showNotification('Failed to import prompts. Please check the file format.', 'error');
+                showNotification(t('notificationImportFailed'), 'error');
             }
         };
         reader.readAsText(file);
@@ -272,11 +283,11 @@ const App = async (rootElement) => {
       const updated = { ...state.editingPrompt, ...data };
       await updatePrompt(updated);
       updatedPrompts = state.prompts.map(p => p.id === updated.id ? updated : p);
-      showNotification('Prompt updated successfully!');
+      showNotification(t('notificationPromptUpdated'));
     } else {
       const newPrompt = await addPrompt(data);
       updatedPrompts = [...state.prompts, newPrompt];
-      showNotification('Prompt added successfully!');
+      showNotification(t('notificationPromptAdded'));
     }
     setState({ prompts: updatedPrompts, editingPrompt: null });
     handleCloseForm();
@@ -302,8 +313,8 @@ const App = async (rootElement) => {
       lastDeletedPrompt: promptToDelete
     });
 
-    showNotification('Prompt deleted.', 'info', {
-        actionText: 'Undo',
+    showNotification(t('notificationPromptDeleted'), 'info', {
+        actionText: t('notificationUndo'),
         onAction: handleUndoDelete,
         onTimeout: handleFinalizeDelete,
         duration: 5000,
@@ -339,20 +350,27 @@ const App = async (rootElement) => {
   const handleAddTemplate = async (templateData) => {
     const newTemplate = await addTemplate(templateData);
     setState({ templates: [...state.templates, newTemplate] });
-    showNotification('Template saved successfully!', 'success');
+    showNotification(t('notificationTemplateSaved'), 'success');
   };
 
   const handleDeleteTemplate = async (templateId) => {
     await deleteTemplate(templateId);
     setState({ templates: state.templates.filter(t => t.id !== templateId) });
-    showNotification('Template deleted.', 'info');
+    showNotification(t('notificationTemplateDeleted'), 'info');
   };
   
   // API KEY HANDLER
   const handleSaveApiKey = async (key) => {
     await setApiKey(key);
     setState({ apiKey: key });
-    showNotification('API Key saved successfully!', 'success');
+    showNotification(t('notificationAPIKeySaved'), 'success');
+  };
+
+  // LANGUAGE HANDLER
+  const handleSetLanguage = async (lang) => {
+    await setLanguage(lang);
+    const syncedTemplates = await syncDefaultTemplates();
+    setState({ locale: lang, templates: syncedTemplates });
   };
 
   // FILTERING & SORTING HANDLERS
@@ -375,16 +393,16 @@ const App = async (rootElement) => {
       rootElement.innerHTML = `
         <div class="app-container">
           <header>
-            <h1>Prompt Manager</h1>
+            <h1>${t('appName')}</h1>
             <div class="header-actions">
               <button id="add-prompt-btn" class="btn btn-primary">
                 ${PlusIcon()}
-                <span>New</span>
+                <span>${t('new')}</span>
               </button>
-              <button id="open-tab-btn" title="Open in new tab" class="btn-icon">
+              <button id="open-tab-btn" title="${t('openInNewTab')}" class="btn-icon">
                 ${ExternalLinkIcon()}
               </button>
-              <button id="settings-btn" title="Settings" class="btn-icon">
+              <button id="settings-btn" title="${t('settings')}" class="btn-icon">
                 ${SettingsIcon()}
               </button>
             </div>
@@ -424,14 +442,14 @@ const App = async (rootElement) => {
     const confirmationModalContainer = document.getElementById('confirmation-modal-container');
     const promptViewModalContainer = document.getElementById('prompt-view-modal-container');
     
-    const categories = ['All', ...[...new Set(state.prompts.map(p => p.category))].sort()];
+    const categories = [t('all'), ...[...new Set(state.prompts.map(p => p.category))].filter(c => c !== 'Uncategorized').sort(), ...state.prompts.some(p => p.category === 'Uncategorized') ? [t('uncategorized')] : []];
 
     if (state.currentView === 'settings') {
-        headerTitle.textContent = 'Settings';
+        headerTitle.textContent = t('settings');
         headerActions.innerHTML = `
             <button id="back-btn" class="btn" style="background-color: var(--btn-secondary-bg); gap: 0.5rem;">
                 ${BackIcon()}
-                <span>Back</span>
+                <span>${t('back')}</span>
             </button>
         `;
         mainViewControls.innerHTML = ''; 
@@ -443,19 +461,21 @@ const App = async (rootElement) => {
             onDeleteTemplate: handleDeleteTemplate,
             apiKey: state.apiKey,
             onSaveApiKey: handleSaveApiKey,
+            currentLocale: state.locale,
+            onSetLanguage: handleSetLanguage,
         });
     } else {
-        if (headerTitle.textContent !== 'Prompt Manager') {
-            headerTitle.textContent = 'Prompt Manager';
+        if (headerTitle.textContent !== t('appName')) {
+            headerTitle.textContent = t('appName');
             headerActions.innerHTML = `
                 <button id="add-prompt-btn" class="btn btn-primary">
                     ${PlusIcon()}
-                    <span>New</span>
+                    <span>${t('new')}</span>
                 </button>
-                <button id="open-tab-btn" title="Open in new tab" class="btn-icon">
+                <button id="open-tab-btn" title="${t('openInNewTab')}" class="btn-icon">
                     ${ExternalLinkIcon()}
                 </button>
-                <button id="settings-btn" title="Settings" class="btn-icon">
+                <button id="settings-btn" title="${t('settings')}" class="btn-icon">
                     ${SettingsIcon()}
                 </button>
             `;
@@ -467,16 +487,16 @@ const App = async (rootElement) => {
                 <div class="search-sort-container">
                     <div class="search-container">
                         <div class="search-icon">${SearchIcon()}</div>
-                        <input type="search" id="search-input" class="search-input" placeholder="Search by title...">
+                        <input type="search" id="search-input" class="search-input" placeholder="${t('searchByTitle')}">
                     </div>
                     <div class="sort-container">
                         <select id="sort-order" class="sort-select" title="Sort order">
-                            <option value="date-desc">Date: Newest</option>
-                            <option value="date-asc">Date: Oldest</option>
-                            <option value="title-asc">Title: A-Z</option>
-                            <option value="title-desc">Title: Z-A</option>
-                            <option value="category-asc">Category: A-Z</option>
-                            <option value="category-desc">Category: Z-A</option>
+                            <option value="date-desc">${t('sortDateNewest')}</option>
+                            <option value="date-asc">${t('sortDateOldest')}</option>
+                            <option value="title-asc">${t('sortTitleAZ')}</option>
+                            <option value="title-desc">${t('sortTitleZA')}</option>
+                            <option value="category-asc">${t('sortCategoryAZ')}</option>
+                            <option value="category-desc">${t('sortCategoryZA')}</option>
                         </select>
                     </div>
                 </div>
@@ -496,9 +516,10 @@ const App = async (rootElement) => {
         const filteredBySearch = sortedPrompts.filter(p => 
           p.title.toLowerCase().includes(state.searchQuery.toLowerCase())
         );
-        const filteredPrompts = state.selectedCategory === 'All'
+        const selectedCategoryRaw = state.selectedCategory === t('all') ? 'All' : (state.selectedCategory === t('uncategorized') ? 'Uncategorized' : state.selectedCategory);
+        const filteredPrompts = selectedCategoryRaw === 'All'
             ? filteredBySearch
-            : filteredBySearch.filter(p => p.category === state.selectedCategory);
+            : filteredBySearch.filter(p => p.category === selectedCategoryRaw);
 
         renderPromptList(mainContent, {
             prompts: filteredPrompts,
@@ -521,7 +542,7 @@ const App = async (rootElement) => {
         onSaveAsTemplate: handleAddTemplate,
         promptToEdit: state.editingPrompt,
         templates: state.templates,
-        categories: categories.filter(c => c !== 'All'),
+        categories: categories.filter(c => c !== t('all') && c !== t('uncategorized')),
         showNotification,
     });
 

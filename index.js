@@ -1,4 +1,5 @@
 import App from './App.js';
+import { init as initI18n } from './lib/i18n.js';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -92,5 +93,10 @@ const initializeResize = async () => {
     });
 };
 
-initializeResize();
-App(rootElement);
+const startApp = async () => {
+    await initI18n();
+    initializeResize();
+    App(rootElement);
+};
+
+startApp();

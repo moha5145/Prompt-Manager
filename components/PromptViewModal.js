@@ -1,4 +1,5 @@
 import { CloseIcon, CopyIcon, CheckIcon } from './Icons.js';
+import { t } from '../lib/i18n.js';
 
 export const renderPromptViewModal = (container, props) => {
     const { prompt, onClose, onCopy } = props;
@@ -8,8 +9,8 @@ export const renderPromptViewModal = (container, props) => {
         return;
     }
 
-    const originalCopyButtonContent = `${CopyIcon()}<span>Copy Text</span>`;
-    const copiedButtonContent = `${CheckIcon()}<span>Copied!</span>`;
+    const originalCopyButtonContent = `${CopyIcon()}<span>${t('promptViewCopy')}</span>`;
+    const copiedButtonContent = `${CheckIcon()}<span>${t('promptViewCopied')}</span>`;
 
     container.innerHTML = `
     <div class="modal-overlay visible">
@@ -27,7 +28,7 @@ export const renderPromptViewModal = (container, props) => {
             <textarea class="prompt-view-modal-text" readonly></textarea>
         </div>
         <div class="prompt-view-modal-actions">
-            <button id="close-view-btn" class="btn" style="background-color: var(--btn-secondary-bg); margin-right: 0.75rem;">Close</button>
+            <button id="close-view-btn" class="btn" style="background-color: var(--btn-secondary-bg); margin-right: 0.75rem;">${t('promptViewClose')}</button>
             <button id="copy-view-btn" class="btn btn-primary">
                 ${originalCopyButtonContent}
             </button>
@@ -37,7 +38,8 @@ export const renderPromptViewModal = (container, props) => {
     `;
     
     container.querySelector('.prompt-view-modal-title').textContent = prompt.title;
-    container.querySelector('.prompt-view-modal-category').textContent = prompt.category;
+    const categoryText = prompt.category === 'Uncategorized' ? t('uncategorized') : prompt.category;
+    container.querySelector('.prompt-view-modal-category').textContent = categoryText;
     
     const textarea = container.querySelector('.prompt-view-modal-text');
     textarea.value = prompt.text;

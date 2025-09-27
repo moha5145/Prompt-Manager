@@ -1,4 +1,5 @@
 import { TrashIcon } from './Icons.js';
+import { t } from '../lib/i18n.js';
 
 export const renderConfirmationModal = (container, props) => {
   const { prompt, onConfirm, onCancel } = props;
@@ -15,18 +16,18 @@ export const renderConfirmationModal = (container, props) => {
           ${TrashIcon()}
         </div>
         <div class="modal-confirm-content">
-            <h3 class="modal-title">Delete Prompt</h3>
-            <p class="modal-confirm-text">Are you sure you want to delete the prompt titled "<strong></strong>"? This action cannot be undone.</p>
+            <h3 class="modal-title">${t('confirmDeleteTitle')}</h3>
+            <p class="modal-confirm-text"></p>
         </div>
         <div class="modal-confirm-actions">
-            <button id="cancel-delete-btn" class="btn">Cancel</button>
-            <button id="confirm-delete-btn" class="btn btn-delete-confirm">Delete</button>
+            <button id="cancel-delete-btn" class="btn">${t('cancel')}</button>
+            <button id="confirm-delete-btn" class="btn btn-delete-confirm">${t('delete')}</button>
         </div>
       </div>
     </div>
   `;
     
-  container.querySelector('.modal-confirm-text strong').textContent = prompt.title;
+  container.querySelector('.modal-confirm-text').textContent = t('confirmDeleteMessage', { title: prompt.title });
   
   container.querySelector('#cancel-delete-btn').addEventListener('click', onCancel);
   container.querySelector('#confirm-delete-btn').addEventListener('click', onConfirm);

@@ -1,4 +1,5 @@
 import { CopyIcon, EditIcon, TrashIcon, CheckIcon } from './Icons.js';
+import { t } from '../lib/i18n.js';
 
 export const renderPromptItem = (container, props) => {
   const { prompt, onEdit, onCopy, onInitiateDelete, onView } = props;
@@ -7,11 +8,11 @@ export const renderPromptItem = (container, props) => {
   const copiedIcon = CheckIcon();
 
   const actionsHtml = `
-      <button title="Copy Prompt" class="copy-btn">
+      <button title="${t('copyPrompt')}" class="copy-btn">
         ${originalCopyIcon}
       </button>
-      <button title="Edit Prompt" class="edit-btn">${EditIcon()}</button>
-      <button title="Delete Prompt" class="delete-btn">${TrashIcon()}</button>
+      <button title="${t('editPrompt')}" class="edit-btn">${EditIcon()}</button>
+      <button title="${t('deletePrompt')}" class="delete-btn">${TrashIcon()}</button>
     `;
 
   container.className = 'prompt-item';
@@ -31,7 +32,8 @@ export const renderPromptItem = (container, props) => {
   // Use textContent to prevent XSS
   container.querySelector('.prompt-item-title').textContent = prompt.title;
   container.querySelector('.prompt-item-text').textContent = prompt.text;
-  container.querySelector('.prompt-item-category').textContent = prompt.category;
+  const categoryText = prompt.category === 'Uncategorized' ? t('uncategorized') : prompt.category;
+  container.querySelector('.prompt-item-category').textContent = categoryText;
 
   const copyBtn = container.querySelector('.copy-btn');
   copyBtn?.addEventListener('click', (e) => {

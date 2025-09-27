@@ -1,5 +1,6 @@
 import { CloseIcon, SparkleIcon, SpinnerIcon, EngineerIcon, ImageIcon } from './Icons.js';
 import { callGeminiAPI, callGeminiAPIMultimodal, storage } from '../hooks/usePrompts.js';
+import { t } from '../lib/i18n.js';
 
 const DRAFT_KEY = 'promptFormDraft';
 
@@ -21,9 +22,9 @@ export const renderPromptForm = (container, props) => {
 
   const templateSelectorHtml = !promptToEdit && templates.length > 0 ? `
     <div class="form-group">
-        <label for="template-select">Use a template (optional)</label>
+        <label for="template-select">${t('useTemplate')}</label>
         <select id="template-select" class="form-select">
-            <option value="">Select a template...</option>
+            <option value="">${t('selectTemplate')}</option>
             ${templateOptions}
         </select>
     </div>
@@ -33,27 +34,27 @@ export const renderPromptForm = (container, props) => {
     <div class="modal-overlay visible">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">${promptToEdit ? 'Edit Prompt' : 'Add New Prompt'}</h2>
+          <h2 class="modal-title">${promptToEdit ? t('editPromptTitle') : t('addPromptTitle')}</h2>
           <button class="modal-close-btn">${CloseIcon()}</button>
         </div>
         <form class="modal-body">
           ${templateSelectorHtml}
           <div class="form-group">
-            <label for="title">Title</label>
-            <input id="title" type="text" class="form-input" placeholder="e.g., 'Creative Story Starter'" required />
+            <label for="title">${t('formTitle')}</label>
+            <input id="title" type="text" class="form-input" placeholder="${t('formTitlePlaceholder')}" required />
           </div>
           <div class="form-group">
-            <label for="category">Category (optional)</label>
-            <input id="category" type="text" class="form-input" list="category-list" placeholder="e.g., 'Marketing'" />
+            <label for="category">${t('formCategory')}</label>
+            <input id="category" type="text" class="form-input" list="category-list" placeholder="${t('formCategoryPlaceholder')}" />
             <datalist id="category-list">
                 ${categoryOptions}
             </datalist>
           </div>
           <div class="form-group">
-            <label for="text">Prompt Text</label>
+            <label for="text">${t('formPromptText')}</label>
             <div id="image-dropzone" class="image-dropzone">
                 ${ImageIcon()}
-                <span>Paste image here</span>
+                <span>${t('pasteImageHere')}</span>
             </div>
             <div id="image-preview-wrapper" style="display: none;">
                 <img id="form-image-preview" src="" alt="Image preview" />
@@ -62,23 +63,23 @@ export const renderPromptForm = (container, props) => {
                 </button>
             </div>
             <div class="textarea-container">
-              <textarea id="text" rows="8" class="form-textarea" placeholder="Add instructions for the image, or enter a text prompt..." required></textarea>
+              <textarea id="text" rows="8" class="form-textarea" placeholder="${t('formPromptTextPlaceholder')}" required></textarea>
               <div class="ai-actions">
-                <button type="button" id="ai-generate-btn" class="btn-ai" title="Generate with AI">
-                    ${EngineerIcon()} <span>Generate with AI</span>
+                <button type="button" id="ai-generate-btn" class="btn-ai" title="${t('generateWithAI')}">
+                    ${EngineerIcon()} <span>${t('generateWithAI')}</span>
                 </button>
-                <button type="button" id="improve-btn" class="btn-ai" title="Improve with AI">
-                    ${SparkleIcon()} <span>Improve</span>
+                <button type="button" id="improve-btn" class="btn-ai" title="${t('improveWithAI')}">
+                    ${SparkleIcon()} <span>${t('improve')}</span>
                 </button>
               </div>
             </div>
           </div>
           <div class="form-actions">
             <div style="margin-right: auto;">
-                <button type="button" id="cancel-form-btn" class="btn" style="background-color: var(--btn-secondary-bg);">Cancel</button>
+                <button type="button" id="cancel-form-btn" class="btn" style="background-color: var(--btn-secondary-bg);">${t('cancel')}</button>
             </div>
-            <button type="button" id="save-as-template-btn" class="btn" style="background-color: var(--btn-secondary-bg); margin-right: 0.75rem;">Save as Template</button>
-            <button type="submit" class="btn btn-primary">${promptToEdit ? 'Save Changes' : 'Add Prompt'}</button>
+            <button type="button" id="save-as-template-btn" class="btn" style="background-color: var(--btn-secondary-bg); margin-right: 0.75rem;">${t('saveAsTemplate')}</button>
+            <button type="submit" class="btn btn-primary">${promptToEdit ? t('saveChanges') : t('addPrompt')}</button>
           </div>
         </form>
       </div>
@@ -119,7 +120,7 @@ export const renderPromptForm = (container, props) => {
     if (savedDraft) {
         const draft = savedDraft;
         titleInput.value = draft.title || '';
-        categoryInput.value = draft.category || '';
+        categoryInput.value = draft.category === 'Uncategorized' ? t('uncategorized') : (draft.category || '');
         textInput.value = draft.text || '';
         if (draft.image && draft.image.base64) {
             imageState = draft.image;
@@ -138,7 +139,7 @@ export const renderPromptForm = (container, props) => {
   if (promptToEdit) {
     titleInput.value = promptToEdit.title;
     textInput.value = promptToEdit.text;
-    categoryInput.value = promptToEdit.category || '';
+    categoryInput.value = promptToEdit.category === 'Uncategorized' ? t('uncategorized') : (promptToEdit.category || '');
   } else {
     // Asynchronously load draft for new prompts
     (async () => {
@@ -200,7 +201,7 @@ export const renderPromptForm = (container, props) => {
       if (title && text) {
         onSaveAsTemplate({ title, text });
       } else {
-        showNotification('Title and text are required to save a template.', 'info');
+        showNotification(t('notificationTemplateSaveInfo'), 'info');
       }
     });
   }
@@ -223,7 +224,7 @@ export const renderPromptForm = (container, props) => {
 
   const setProcessingState = (isProcessing, button, originalContent) => {
       if (isProcessing) {
-          button.innerHTML = `${SpinnerIcon()} Processing...`;
+          button.innerHTML = `${SpinnerIcon()} ${t('processing')}`;
           button.disabled = true;
           improveBtn.disabled = true;
           generateBtn.disabled = true;
@@ -241,10 +242,10 @@ export const renderPromptForm = (container, props) => {
           const resultText = await apiCaller(prompt);
           textInput.value = resultText;
           saveDraft();
-          showNotification(`Prompt updated with AI!`, 'success');
+          showNotification(t('notificationPromptUpdated'), 'success');
       } catch (e) {
           console.error(e);
-          showNotification(e.message || `Failed to update prompt.`, 'error');
+          showNotification(t(e.message) || t('error_failed_to_update_prompt'), 'error');
       } finally {
           setProcessingState(false, button, originalContent);
       }
@@ -268,10 +269,10 @@ export const renderPromptForm = (container, props) => {
             const resultText = await callGeminiAPIMultimodal(systemPrompt, base64Data, imageState.mimeType);
             textInput.value = resultText;
             saveDraft();
-            showNotification('Prompt generated from image!', 'success');
+            showNotification(t('notificationPromptGenerated'), 'success');
         } catch (e) {
             console.error(e);
-            showNotification(e.message || 'Failed to generate from image.', 'error');
+            showNotification(t(e.message) || t('error_failed_to_generate_from_image'), 'error');
         } finally {
             setProcessingState(false, generateBtn, originalContent);
         }
@@ -310,10 +311,14 @@ Original Prompt:
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (titleInput.value.trim() && textInput.value.trim()) {
+      let categoryValue = categoryInput.value.trim();
+      if (categoryValue === t('uncategorized')) {
+          categoryValue = 'Uncategorized';
+      }
       onSave({ 
-        title: titleInput.value, 
-        text: textInput.value,
-        category: categoryInput.value 
+        title: titleInput.value.trim(), 
+        text: textInput.value.trim(),
+        category: categoryValue
       });
       await clearDraft();
     }
